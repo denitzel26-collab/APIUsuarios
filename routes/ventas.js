@@ -28,9 +28,9 @@ router.post('/', async (req, res) => {
     for (const item of saleData.items) {
       try {
         // Hacemos la petición usando la variable de entorno en lugar de localhost quemado
-        await axios.patch(`${PYTHON_API_URL}/productos/${item.product_id}/update-stock`, {
-          cantidad_a_restar: Number(item.quantity)
-        });
+       await axios.patch(`${PYTHON_API_URL}/productos/${item.product_id}/update-stock`, {
+  cantidad_a_restar: Number(item.quantity) // <-- Este nombre debe coincidir con el de Python
+});
       } catch (pythonError) {
         // Si Python dice que no hay stock (400) o no existe el producto (404), cancelamos la venta
         return res.status(400).json({ 
