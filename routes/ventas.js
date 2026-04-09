@@ -31,14 +31,14 @@ router.post('/', async (req, res) => {
        await axios.patch(`${PYTHON_API_URL}/productos/${item.product_id}/update-stock`, {
   cantidad_a_restar: Number(item.quantity) // <-- Este nombre debe coincidir con el de Python
 });
-      } catch (pythonError) {
-        // Si Python dice que no hay stock (400) o no existe el producto (404), cancelamos la venta
-        return res.status(400).json({ 
-          error: `Error con el producto '${item.name}': ${pythonError.response?.data?.detail || 'No se pudo descontar el stock'}`
-        });
-      }
-    }
-
+    } catch (pythonError) {
+    // Esto te dirá en la consola de Railway exactamente qué falló
+    console.log("DETALLE DEL ERROR:", pythonError.response?.data); 
+    
+    return res.status(400).json({ 
+        error: `Error en stock: ${JSON.stringify(pythonError.response?.data)}` 
+    });
+}}
     // 3. Crear el objeto con coerción de tipos (Adaptado a Mongoose)
     const nuevaVenta = new Sale({
       user_id: saleData.user_id,
