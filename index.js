@@ -20,6 +20,7 @@ mongoose.connect(process.env.MONGO_URI)
 app.use('/auth', authRoutes);
 app.use('/usuarios', usuariosRoutes); // <--- NUEVA LÍNEA
 app.use('/ventas', require('./routes/ventas'));
+app.use('/reportes', require('./routes/reportes'));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Servidor de Backend 1 corriendo en puerto ${PORT}`));
