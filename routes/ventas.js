@@ -3,6 +3,9 @@ const express = require('express');
 const router = express.Router();
 const axios = require('axios'); // Para comunicarnos con el Backend 2 (Python)
 const Sale = require('../models/Venta');
+// Instala: npm install moment-timezone
+const moment = require('moment-timezone');
+
 
 // IMPORTANTE: Definimos la URL base del microservicio de Python.
 // En Render, deberás crear la variable de entorno PYTHON_API_URL.
@@ -42,7 +45,8 @@ router.post('/', async (req, res) => {
     // 3. Crear el objeto con coerción de tipos (Adaptado a Mongoose)
     const nuevaVenta = new Sale({
       user_id: saleData.user_id,
-      sale_date: saleData.sale_date || new Date(),
+      sale_date: moment().tz("America/Mexico_City").format() || new Date(), // Si no se proporciona, usamos la fecha actual
+    
       items: saleData.items.map(item => ({
         product_id: item.product_id,
         name: item.name,

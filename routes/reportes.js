@@ -7,6 +7,18 @@ const ExcelJS = require('exceljs');
 const fs = require('fs');
 const path = require('path');
 
+// Configuración global de zona horaria para los reportes
+const opcionesMX = { 
+  timeZone: 'America/Mexico_City', 
+  year: 'numeric', 
+  month: '2-digit', 
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: true 
+};
+
 // -------------------------------------------------------------------
 // HU18: Generar reporte de ventas en PDF (Tienda de Electrónica)
 // -------------------------------------------------------------------
@@ -14,8 +26,10 @@ router.get('/ventas/pdf', async (req, res) => {
   try {
     const solicitante = req.query.solicitante || 'Consultor / Administrador';
     const fechaHoraActual = new Date();
-    const fechaActual = fechaHoraActual.toLocaleDateString('es-MX');
-    const horaActual = fechaHoraActual.toLocaleTimeString('es-MX');
+    
+    // Ajuste de fecha y hora para el encabezado
+    const fechaActual = fechaHoraActual.toLocaleDateString('es-MX', { timeZone: 'America/Mexico_City' });
+    const horaActual = fechaHoraActual.toLocaleTimeString('es-MX', { timeZone: 'America/Mexico_City' });
 
     const ventas = await Sale.find().sort({ sale_date: -1 });
 
@@ -31,42 +45,40 @@ router.get('/ventas/pdf', async (req, res) => {
       doc.image(plantillaPath, 0, 0, { width: doc.page.width, height: doc.page.height });
     }
 
-    // 2. LOGO SUPERIOR IZQUIERDA
+    // 2. LOGO
     const logoPath = path.join(__dirname, '../images/logo.png');
     if (fs.existsSync(logoPath)) {
       doc.image(logoPath, 40, 40, { width: 65 }); 
     }
 
-    // 3. ENCABEZADO INSTITUCIONAL ACTUALIZADO
+    // 3. ENCABEZADO
     doc.fillColor('#000000');
     doc.font('Helvetica-Bold').fontSize(16).text('UNIVERSIDAD POLITÉCNICA DE PACHUCA', 120, 50);
-    doc.fontSize(12).text('SISTEMA DE GESTIÓN DE ELECTRÓNICA (SOA)', 120, 70); // <--- NUEVO NOMBRE
+    doc.fontSize(12).text('SISTEMA DE GESTIÓN DE ELECTRÓNICA (SOA)', 120, 70);
     
-    // 4. DESCRIPCIÓN
     doc.y = 150; 
     doc.font('Helvetica').fontSize(10).text(
-      'Este documento presenta el desglose oficial de las operaciones de venta de componentes y dispositivos electrónicos, ' +
-      'detallando folios, fechas y montos para auditoría de inventario.',
+      'Este documento presenta el desglose oficial de las operaciones de venta de componentes y dispositivos electrónicos.',
       40, doc.y, { align: 'justify' }
     );
     doc.moveDown();
 
-    // 5. METADATOS (Usuario: Luis Manuel López Coronel)
     doc.fontSize(9).text(`Generado por: ${solicitante}`);
-    doc.text(`Fecha: ${fechaActual}  |  Hora: ${horaActual}`);
+    doc.text(`Fecha (MX): ${fechaActual}  |  Hora (MX): ${horaActual}`);
     doc.moveDown(2);
 
-    // 6. TABLA DE VENTAS
+    // 6. TABLA DE VENTAS CON FECHA CORREGIDA
     const filasTabla = ventas.map(venta => [
       venta._id.toString().substring(0, 8).toUpperCase(),
-      venta.sale_date ? venta.sale_date.toLocaleDateString('es-MX') : 'N/A',
+      // Aquí forzamos la conversión de la fecha de la base de datos a hora de México
+      venta.sale_date ? new Date(venta.sale_date).toLocaleDateString('es-MX', { timeZone: 'America/Mexico_City' }) : 'N/A',
       venta.status ? venta.status.toUpperCase() : 'COMPLETADO',
       `$${venta.total_amount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`
     ]);
 
     await doc.table({
       title: "HISTORIAL DE MOVIMIENTOS - TECH STORE",
-      headers: ["ID TRANSACCIÓN", "FECHA", "ESTADO", "MONTO TOTAL"],
+      headers: ["ID TRANSACCIÓN", "FECHA (MX)", "ESTADO", "MONTO TOTAL"],
       rows: filasTabla,
     }, { 
       prepareHeader: () => doc.font("Helvetica-Bold").fontSize(10),
@@ -80,21 +92,21 @@ router.get('/ventas/pdf', async (req, res) => {
 });
 
 // -------------------------------------------------------------------
-// HU19: Exportar reporte de ventas en Excel (Tienda de Electrónica - SIN LOGO)
+// HU19: Exportar reporte de ventas en Excel (Tienda de Electrónica)
 // -------------------------------------------------------------------
 router.get('/ventas/excel', async (req, res) => {
   try {
     const solicitante = req.query.solicitante || 'Consultor / Administrador';
     const fechaHoraActual = new Date();
-    const fechaActual = fechaHoraActual.toLocaleDateString('es-MX');
-    const horaActual = fechaHoraActual.toLocaleTimeString('es-MX');
+    
+    const fechaActual = fechaHoraActual.toLocaleDateString('es-MX', { timeZone: 'America/Mexico_City' });
+    const horaActual = fechaHoraActual.toLocaleTimeString('es-MX', { timeZone: 'America/Mexico_City' });
 
     const ventas = await Sale.find().sort({ sale_date: -1 });
 
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Reporte de Ventas');
 
-    // 1. CONFIGURACIÓN DE COLUMNAS
     worksheet.columns = [
       { key: 'id', width: 35 },
       { key: 'fecha', width: 20 },
@@ -103,7 +115,6 @@ router.get('/ventas/excel', async (req, res) => {
       { key: 'total', width: 20 }
     ];
 
-    // 2. ENCABEZADOS CENTRADOS (Sin logo para evitar amontonamiento)
     worksheet.mergeCells('A1:E1'); 
     const t1 = worksheet.getCell('A1');
     t1.value = 'UNIVERSIDAD POLITÉCNICA DE PACHUCA';
@@ -112,18 +123,16 @@ router.get('/ventas/excel', async (req, res) => {
 
     worksheet.mergeCells('A2:E2');
     const t2 = worksheet.getCell('A2');
-    t2.value = 'SISTEMA DE GESTIÓN DE ELECTRÓNICA (SOA)'; // <--- NUEVO NOMBRE
+    t2.value = 'SISTEMA DE GESTIÓN DE ELECTRÓNICA (SOA)';
     t2.font = { size: 13, italic: true };
     t2.alignment = { vertical: 'middle', horizontal: 'center' };
 
-    // 3. METADATOS
     worksheet.getCell('A4').value = `Solicitado por: ${solicitante}`;
-    worksheet.getCell('A5').value = `Emisión: ${fechaActual} a las ${horaActual}`;
+    worksheet.getCell('A5').value = `Emisión (Hora México): ${fechaActual} a las ${horaActual}`;
 
-    // 4. CABECERA DE TABLA (Diseño limpio en azul)
     const headerRow = worksheet.getRow(7); 
     headerRow.height = 25;
-    headerRow.values = ['ID TRANSACCIÓN', 'FECHA DE VENTA', 'ESTADO', 'MÉTODO PAGO', 'TOTAL ($)'];
+    headerRow.values = ['ID TRANSACCIÓN', 'FECHA DE VENTA (MX)', 'ESTADO', 'MÉTODO PAGO', 'TOTAL ($)'];
 
     headerRow.eachCell((cell) => {
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
@@ -131,11 +140,12 @@ router.get('/ventas/excel', async (req, res) => {
       cell.alignment = { vertical: 'middle', horizontal: 'center' };
     });
 
-    // 5. LLENADO DE DATOS REALES
+    // LLENADO DE DATOS CON CONVERSIÓN DE ZONA HORARIA
     ventas.forEach((venta) => {
       const row = worksheet.addRow([
         venta._id.toString(),
-        venta.sale_date ? venta.sale_date.toLocaleDateString('es-MX') : 'N/A',
+        // Convertimos la fecha UTC de la DB a la local de México antes de escribirla en la celda
+        venta.sale_date ? new Date(venta.sale_date).toLocaleDateString('es-MX', { timeZone: 'America/Mexico_City' }) : 'N/A',
         venta.status ? venta.status.toUpperCase() : 'COMPLETADO',
         venta.payment_method ? venta.payment_method.toUpperCase() : 'EFECTIVO',
         venta.total_amount
