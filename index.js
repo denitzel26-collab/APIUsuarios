@@ -30,9 +30,11 @@ app.listen(PORT, () => {
     console.log(`Servidor de Backend 1 corriendo en puerto ${PORT}`);
     
     // Ping a la API de Render para que no se duerma
-    setInterval(() => {
-        axios.get('https://apiventas-5dxn.onrender.com/healthcheck')
-            .then(() => console.log('Ping de cortesía enviado a Render: Activo'))
-            .catch(err => console.log('Ping fallido (posiblemente el server aún está arrancando):', err.message));
-    }, 10 * 60 * 1000); // 10 minutos
+   // En tu index.js de Railway (JavaScript)
+setInterval(() => {
+    // IMPORTANTE: Sin el "/productos", apunta directo a la nueva ruta
+    axios.get('https://apiventas-5dxn.onrender.com/healthcheck')
+        .then(() => console.log('Ping exitoso a Render'))
+        .catch(err => console.log('Esperando a que Render despierte...'));
+}, 10 * 60 * 1000);
 });
