@@ -3,6 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const axios = require('axios'); // Asegúrate de hacer: npm install axios
 
 // Importar rutas
 const authRoutes = require('./routes/auth');
@@ -24,3 +25,14 @@ app.use('/reportes', require('./routes/reportes'));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Servidor de Backend 1 corriendo en puerto ${PORT}`));
+
+app.listen(PORT, () => {
+    console.log(`Servidor de Backend 1 corriendo en puerto ${PORT}`);
+    
+    // Ping a la API de Render para que no se duerma
+    setInterval(() => {
+        axios.get('https://apiventas-5dxn.onrender.com/healthcheck')
+            .then(() => console.log('Ping de cortesía enviado a Render: Activo'))
+            .catch(err => console.log('Ping fallido (posiblemente el server aún está arrancando):', err.message));
+    }, 10 * 60 * 1000); // 10 minutos
+});
