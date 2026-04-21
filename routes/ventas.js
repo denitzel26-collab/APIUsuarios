@@ -84,4 +84,40 @@ router.get('/', async (req, res) => {
     }
 });
 
+// Ruta para modificar el estado de una venta
+router.patch('/:id/estado', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    // 1. Validación básica: asegurarnos de que mandaron el nuevo estado
+    if (!status) {
+      return res.status(400).json({ error: "Debes enviar el nuevo estado ('status') en el cuerpo de la petición." });
+    }
+
+    // 2. Buscar y actualizar la venta en MongoDB
+    // El { new: true } le dice a Mongoose que nos devuelva el objeto ya actualizado
+    const ventaActualizada = await Sale.findByIdAndUpdate(
+      id,
+      { status: status },
+      { new: true } 
+    );
+
+    // 3. Validar si la venta realmente existía
+    if (!ventaActualizada) {
+      return res.status(404).json({ error: "Venta no encontrada." });
+    }
+
+    // 4. Respuesta exitosa
+    res.status(200).json({
+      mensaje: "Estado de la venta actualizado con éxito",
+      venta: ventaActualizada
+    });
+
+  } catch (error) {
+    // 5. Manejo de errores (por ejemplo, si el ID tiene un formato inválido para Mongo)
+    console.error('[Error al actualizar estado de la venta]:', error.message);
+    res.status(500).json({ error: "Error interno al modificar el estado de la venta." });
+  }
+});
 module.exports = router;
